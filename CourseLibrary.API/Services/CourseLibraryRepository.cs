@@ -168,6 +168,7 @@ namespace CourseLibrary.API.Services
         public void UpdateAuthor(Author author)
         {
             // no code in this implementation
+            // Done by EntityFramework
         }
 
         public bool Save()
