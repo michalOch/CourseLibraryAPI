@@ -76,7 +76,7 @@ namespace CourseLibrary.API.Controllers
         [HttpOptions]
         public IActionResult GetCourseOptions()
         {
-            Response.Headers.Add("Allow", "GET, OPTIONS, POST, PUT");
+            Response.Headers.Add("Allow", "GET, OPTIONS, POST, PUT, PATCH, DELETE");
             return Ok();
         }
 
@@ -142,7 +142,12 @@ namespace CourseLibrary.API.Controllers
                 // (Upserting with PATCH)
 
                 var courseDto = new CourseForUpdateDto();
-                patchDocument.ApplyTo(courseDto);
+                patchDocument.ApplyTo(courseDto, ModelState);
+
+                if (!TryValidateModel(courseDto))
+                {
+                    return ValidationProblem(ModelState);
+                }
 
                 // Map Dto to Entity
                 var courseToAdd = _mapper.Map<Course>(courseDto);
@@ -183,5 +188,29 @@ namespace CourseLibrary.API.Controllers
             return (ActionResult)options.Value.InvalidModelStateResponseFactory(ControllerContext);
         }
 
+        // DELETE api/authors/{authorId}/courses/{courseId}
+        [HttpDelete("{courseId}")]
+        public ActionResult DeleteCourseForAuthor(Guid authorId, Guid courseId)
+        {
+            // Check if the author exists
+            if (!_courseLibraryRepository.AuthorExists(authorId))
+            {
+                return NotFound();
+            }
+
+            // Try do fetch the course for that author
+            var courseForAuthorFromRepo = _courseLibraryRepository.GetCourse(authorId, courseId);
+            if(courseForAuthorFromRepo == null)
+            {
+                return NotFound();
+            }
+
+            // Delete course
+            _courseLibraryRepository.DeleteCourse(courseForAuthorFromRepo);
+            _courseLibraryRepository.Save();
+
+            // Return success without content
+            return NoContent();
+        }
     }
 }
