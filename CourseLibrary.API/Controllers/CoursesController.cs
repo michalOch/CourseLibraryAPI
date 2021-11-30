@@ -138,12 +138,28 @@ namespace CourseLibrary.API.Controllers
 
             if(courseForAuthorFromRepo == null)
             {
-                return NotFound();
+                // If course with id doesn't exist we create it
+                // (Upserting with PATCH)
+
+                var courseDto = new CourseForUpdateDto();
+                patchDocument.ApplyTo(courseDto);
+
+                // Map Dto to Entity
+                var courseToAdd = _mapper.Map<Course>(courseDto);
+                courseToAdd.Id = courseId;
+
+                _courseLibraryRepository.AddCourse(authorId, courseToAdd);
+                _courseLibraryRepository.Save();
+
+                // Return 201 Created with location link
+                var courseToReturn = _mapper.Map<CourseDto>(courseToAdd);
+                return CreatedAtRoute("GetCourseForAuthor", 
+                    new { authorId, courseId = courseToReturn.Id }, 
+                    courseToReturn);
             }
 
             var courseToPatch = _mapper.Map<CourseForUpdateDto>(courseForAuthorFromRepo);
 
-            // TODO add validation
             patchDocument.ApplyTo(courseToPatch, ModelState);
 
             if (!TryValidateModel(courseToPatch))
